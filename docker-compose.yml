@@ -1,0 +1,13 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  web:
+    build: .
+    env_file:
+      - .env
+    command: uvicorn app.main:app --reload --host 0.0.0.0
+    volumes:
+      - .:/app
+    ports:
+      - 8000:8000
