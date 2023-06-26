@@ -15,7 +15,7 @@ class WebhookResponse:
     AUDIO = "audio/ogg"
 
     @staticmethod
-    def send_message(body: str, to: str):
+    async def send_message(body: str, to: str):
         account_sid = os.environ["TWILIO_ACCOUNT_SID"]
         auth_token = os.environ["TWILIO_AUTH_TOKEN"]
         whatsapp_number = os.environ["TWILIO_WHATSAPP_NUMBER"]
@@ -34,47 +34,47 @@ class WebhookResponse:
         bot_reponse = Chatbot.call(text)
         data = bot_reponse.json()
         answer = data["answer"]
-        _logger.warning(f"WebhookResponse Bot Answer: {answer}")
         return answer
 
     @staticmethod
-    def process_webhook(
+    def transcribe(media_url: str, whisper_model: whisper.Whisper):
+        segments, _ = whisper_model.transcribe(
+            media_url,
+            language="pt",
+            beam_size=5,
+        )
+        text = " ".join([segment.text for segment in segments])
+        return text
+
+    @staticmethod
+    async def process_webhook(
         whisper_model: whisper.Whisper,
         payload: WebhookPayload,
-    ) -> MessagingResponse:
+    ) -> None:
         _logger.warning(f"process_webhook Received form: {payload}")
-
-        response = MessagingResponse()
 
         try:
             if payload.Body:
-                response.message(
-                    WebhookResponse.make_reponse_from_bot_answer(payload.Body)
+                message = WebhookResponse.make_reponse_from_bot_answer(
+                    payload.Body,
                 )
             elif (
                 payload.NumMedia > 0
                 and payload.MediaContentType0 == WebhookResponse.AUDIO
             ):
-                stt = whisper_model.transcribe(
+                text = WebhookResponse.transcribe(
                     payload.MediaUrl0,
-                    language="pt",
-                    fp16=False,
-                    verbose=True,
-                    patience=2,
-                    beam_size=5,
+                    whisper_model,
                 )
-                text = stt["text"]
-
-                _logger.warning(f"Whisper: {stt}")
-                answer = WebhookResponse.make_reponse_from_bot_answer(text)
-                response.message(answer)
+                _logger.warning(f"Whisper: {text}")
+                message = WebhookResponse.make_reponse_from_bot_answer(text)
             else:
-                response.message("Não sei o que fazer com isso")
+                message = "Não sei o que fazer com isso"
         except Exception as e:
             _logger.error(f"Error processing webhook: {e}")
-            response.message("Tipo, deu ruim aqui")
+            message = "Tipo, deu ruim aqui"
 
-        return response
+        await WebhookResponse.send_message(message, payload.From)
 
     def call_chatbot(self, text: str):
         return self.chatbot.get_response(text)

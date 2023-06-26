@@ -4,4 +4,4 @@ python-multipart
 coverage==6.3.2
 httpx
 twilio
-openai-whisper
+faster-whisper
