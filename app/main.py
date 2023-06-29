@@ -30,8 +30,16 @@ async def chat(
     # TODO Autenticação com Twilio
 
     webhook_payload = WebhookPayload(**form_)
+
+    if webhook_payload.Body:
+        response = WebhookResponse.process_webhook_text(webhook_payload)
+        return Response(
+            content=str(response),
+            media_type="application/xml",
+        )
+
     asyncio.create_task(
-        WebhookResponse.process_webhook(whisper_model, webhook_payload),
+        WebhookResponse.process_webhook_voice(whisper_model, webhook_payload),
     )
 
     return Response(

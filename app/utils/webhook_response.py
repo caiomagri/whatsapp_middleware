@@ -10,6 +10,8 @@ from app.models.webhook import WebhookPayload
 
 _logger = logging.getLogger(__name__)
 
+DEFAULT_ERROR_MSG = "Foi mal, não entendi. Pode repetir?"
+
 
 class WebhookResponse:
     AUDIO = "audio/ogg"
@@ -47,18 +49,32 @@ class WebhookResponse:
         return text
 
     @staticmethod
-    async def process_webhook(
+    def process_webhook_text(
+        payload: WebhookPayload,
+    ) -> None:
+        _logger.warning(f"process_webhook_text Received form: {payload}")
+
+        try:
+            message = WebhookResponse.make_reponse_from_bot_answer(
+                payload.Body,
+            )
+        except Exception as e:
+            _logger.error(f"Error processing process_webhook_text: {e}")
+            message = DEFAULT_ERROR_MSG
+
+        response = MessagingResponse()
+        response.message(message)
+        return response
+
+    @staticmethod
+    async def process_webhook_voice(
         whisper_model: whisper.Whisper,
         payload: WebhookPayload,
     ) -> None:
         _logger.warning(f"process_webhook Received form: {payload}")
 
         try:
-            if payload.Body:
-                message = WebhookResponse.make_reponse_from_bot_answer(
-                    payload.Body,
-                )
-            elif (
+            if (
                 payload.NumMedia > 0
                 and payload.MediaContentType0 == WebhookResponse.AUDIO
             ):
@@ -69,10 +85,10 @@ class WebhookResponse:
                 _logger.warning(f"Whisper: {text}")
                 message = WebhookResponse.make_reponse_from_bot_answer(text)
             else:
-                message = "Não sei o que fazer com isso"
+                message = "Infelizmente não consigo processar esse tipo de mensagem, tente enviar um áudio ou texto."
         except Exception as e:
-            _logger.error(f"Error processing webhook: {e}")
-            message = "Tipo, deu ruim aqui"
+            _logger.error(f"Error processing process_webhook_voice: {e}")
+            message = DEFAULT_ERROR_MSG
 
         await WebhookResponse.send_message(message, payload.From)
 
