@@ -1,8 +1,8 @@
 import os
 import logging
 
-import whisper
 from twilio.rest import Client
+from faster_whisper import WhisperModel
 from twilio.twiml.messaging_response import MessagingResponse
 
 from app.utils.chatbot import Chatbot
@@ -32,14 +32,14 @@ class WebhookResponse:
         return message
 
     @staticmethod
-    def make_reponse_from_bot_answer(text: str):
-        bot_reponse = Chatbot.call(text)
-        data = bot_reponse.json()
+    def make_response_from_bot_answer(text: str):
+        bot_response = Chatbot.call(text)
+        data = bot_response.json()
         answer = data["answer"]
         return answer
 
     @staticmethod
-    def transcribe(media_url: str, whisper_model: whisper.Whisper):
+    def transcribe(media_url: str, whisper_model: WhisperModel):
         segments, _ = whisper_model.transcribe(
             media_url,
             language="pt",
@@ -55,7 +55,7 @@ class WebhookResponse:
         _logger.warning(f"process_webhook_text Received form: {payload}")
 
         try:
-            message = WebhookResponse.make_reponse_from_bot_answer(
+            message = WebhookResponse.make_response_from_bot_answer(
                 payload.Body,
             )
         except Exception as e:
@@ -68,7 +68,7 @@ class WebhookResponse:
 
     @staticmethod
     async def process_webhook_voice(
-        whisper_model: whisper.Whisper,
+        whisper_model: WhisperModel,
         payload: WebhookPayload,
     ) -> None:
         _logger.warning(f"process_webhook Received form: {payload}")
@@ -83,7 +83,7 @@ class WebhookResponse:
                     whisper_model,
                 )
                 _logger.warning(f"Whisper: {text}")
-                message = WebhookResponse.make_reponse_from_bot_answer(text)
+                message = WebhookResponse.make_response_from_bot_answer(text)
             else:
                 message = "Infelizmente não consigo processar esse tipo de mensagem, tente enviar um áudio ou texto."
         except Exception as e:
