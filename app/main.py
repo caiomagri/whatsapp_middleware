@@ -1,6 +1,5 @@
 import os
 import asyncio
-from faster_whisper import WhisperModel
 
 from fastapi import FastAPI, Response, Request
 
@@ -9,11 +8,17 @@ from app.utils.webhook_response import WebhookResponse
 
 app = FastAPI()
 
-whisper_model = WhisperModel(
-    os.getenv("WHISPER_LOAD_MODEL", "small"),
-    device=os.getenv("WHISPER_DEVICE", "small"),
-    compute_type=os.getenv("WHISPER_COMPUTE_TYPE", "int8"),
-)
+if os.environ["AUDIO_TRANSCRIBE_MODEL"] == "whisper":
+    from faster_whisper import WhisperModel
+
+    model = WhisperModel(
+        os.getenv("WHISPER_LOAD_MODEL", "small"),
+        device=os.getenv("WHISPER_DEVICE", "small"),
+        compute_type=os.getenv("WHISPER_COMPUTE_TYPE", "int8"),
+    )
+else:
+    import joblib
+    model = joblib.load('./data/model/wav2wac_vhn.joblib')
 
 
 @app.get("/health_check")
@@ -39,7 +44,7 @@ async def chat(
         )
 
     asyncio.create_task(
-        WebhookResponse.process_webhook_voice(whisper_model, webhook_payload),
+        WebhookResponse.process_webhook_voice(model, webhook_payload),
     )
 
     return Response(

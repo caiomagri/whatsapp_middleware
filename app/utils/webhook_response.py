@@ -1,4 +1,5 @@
 import os
+import joblib
 import logging
 
 from twilio.rest import Client
@@ -39,13 +40,16 @@ class WebhookResponse:
         return answer
 
     @staticmethod
-    def transcribe(media_url: str, whisper_model: WhisperModel):
-        segments, _ = whisper_model.transcribe(
-            media_url,
-            language="pt",
-            beam_size=5,
-        )
-        text = " ".join([segment.text for segment in segments])
+    def transcribe(media_url: str, model):
+        if os.environ["AUDIO_TRANSCRIBE_MODEL"] == "whisper":
+            segments, _ = model.transcribe(
+                media_url,
+                language="pt",
+                beam_size=5,
+            )
+            text = " ".join([segment.text for segment in segments])
+        else:
+            text = model.transcribe([media_url])
         return text
 
     @staticmethod
