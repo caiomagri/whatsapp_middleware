@@ -1,5 +1,6 @@
 import os
-import joblib
+import io
+import requests
 import logging
 
 from twilio.rest import Client
@@ -41,7 +42,7 @@ class WebhookResponse:
 
     @staticmethod
     def transcribe(media_url: str, model):
-        if os.environ["AUDIO_TRANSCRIBE_MODEL"] == "whisper":
+        if os.getenv("AUDIO_TRANSCRIBE_MODEL") == "whisper":
             segments, _ = model.transcribe(
                 media_url,
                 language="pt",
@@ -49,7 +50,19 @@ class WebhookResponse:
             )
             text = " ".join([segment.text for segment in segments])
         else:
-            text = model.transcribe([media_url])
+            import uuid
+            from pydub import AudioSegment
+
+            audio_response = requests.get(media_url)
+            audio_content = audio_response.content
+            audio_buffer = io.BytesIO(audio_content)
+            audio_segment = AudioSegment.from_file(audio_buffer)
+            audio_id = str(uuid.uuid4())
+            ogg_path = f"/app/data/temp/{audio_id}_temp_audio.ogg"
+            audio_segment.export(ogg_path, format="ogg")
+            response = model.transcribe([ogg_path])
+            text = response[0].get("transcription")
+            os.remove(ogg_path)
         return text
 
     @staticmethod

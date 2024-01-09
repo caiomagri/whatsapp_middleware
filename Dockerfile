@@ -17,6 +17,7 @@ RUN apt-get install -y ffmpeg
 # install dependencies
 COPY requirements.txt .
 RUN pip install -r requirements.txt
+RUN pip install "torch>=2.0" --extra-index-url https://download.pytorch.org/whl/cu117 --upgrade --quiet
 
 # copy project
 COPY . .

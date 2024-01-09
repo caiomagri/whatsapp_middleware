@@ -6,4 +6,6 @@ httpx
 twilio
 faster-whisper
 joblib==1.3.2
-huggingsound==0.1.6
+huggingsound
+torch
+pydub

@@ -8,7 +8,7 @@ from app.utils.webhook_response import WebhookResponse
 
 app = FastAPI()
 
-if os.environ["AUDIO_TRANSCRIBE_MODEL"] == "whisper":
+if os.getenv("AUDIO_TRANSCRIBE_MODEL") == "whisper":
     from faster_whisper import WhisperModel
 
     model = WhisperModel(
