@@ -1,8 +1,9 @@
 import os
 import asyncio
 
-from fastapi import FastAPI, Response, Request
+from fastapi import FastAPI, Response, Request, HTTPException
 
+from app.utils.twilio_auth import twilio_auth
 from app.models.webhook import WebhookPayload
 from app.utils.webhook_response import WebhookResponse
 
@@ -18,6 +19,7 @@ if os.getenv("AUDIO_TRANSCRIBE_MODEL") == "whisper":
     )
 else:
     import joblib
+
     model = joblib.load('./data/model/wav2wac_vhn.joblib')
 
 
@@ -28,11 +30,11 @@ def health_check():
 
 @app.post("/webhook")
 async def chat(
-    request: Request,
+        request: Request,
 ):
     form_ = await request.form()
 
-    # TODO Autenticação com Twilio
+    twilio_auth(request, form_)
 
     webhook_payload = WebhookPayload(**form_)
 
